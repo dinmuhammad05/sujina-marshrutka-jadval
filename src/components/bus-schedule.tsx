@@ -426,19 +426,19 @@ const dashtiToMarmar = [
 ];
 
 const prices = [
-  { from: 'Мармар', to: 'Малихонов', price: '2 000' },
-  { from: 'Мармар', to: 'Дашт', price: '3 000' },
-  { from: 'Мармар', to: 'Марказ', price: '4 000' },
-  { from: 'Мармар', to: 'Терешкова', price: '5 000' },
-  { from: 'Мармар', to: 'Даштималла', price: '6 000' },
+  { from: 'Мармар', to: 'Малихонов', price: '2' },
+  { from: 'Мармар', to: 'Дашт', price: '3 ' },
+  { from: 'Мармар', to: 'Марказ', price: '4 ' },
+  { from: 'Мармар', to: 'Терешкова', price: '5 ' },
+  { from: 'Мармар', to: 'Даштималла', price: '6 ' },
 ];
 
 const pricesReverse = [
-  { from: 'Даштималла', to: 'Терешкова', price: '2 000' },
-  { from: 'Даштималла', to: 'Марказ', price: '3 000' },
-  { from: 'Даштималла', to: '69-мактаб', price: '4 000' },
-  { from: 'Даштималла', to: 'Бобур', price: '5 000' },
-  { from: 'Даштималла', to: 'Мармар', price: '6 000' },
+  { from: 'Даштималла', to: 'Терешкова', price: '2 ' },
+  { from: 'Даштималла', to: 'Марказ', price: '3 ' },
+  { from: 'Даштималла', to: '69-мактаб', price: '4 ' },
+  { from: 'Даштималла', to: 'Бобур', price: '5 ' },
+  { from: 'Даштималла', to: 'Мармар', price: '6 ' },
 ];
 
 function StopCard({
@@ -804,7 +804,7 @@ export default function BusSchedule() {
                     </span>
                   </div>
                   <span className="rounded-full bg-linear-to-r from-emerald-500 to-green-500 px-2.5 md:px-4 py-1 md:py-1.5 text-xs md:text-sm font-bold text-white shadow-md whitespace-nowrap">
-                    {item.price} сўм
+                    {item.price} сомони
                   </span>
                 </div>
               ))}
