@@ -834,7 +834,7 @@ export default function BusSchedule() {
                     </span>
                   </div>
                   <span className="rounded-full bg-linear-to-r from-emerald-500 to-green-500 px-2.5 md:px-4 py-1 md:py-1.5 text-xs md:text-sm font-bold text-white shadow-md whitespace-nowrap">
-                    {item.price} сўм
+                    {item.price} сомони
                   </span>
                 </div>
               ))}
