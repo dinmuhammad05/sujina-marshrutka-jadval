@@ -436,7 +436,7 @@ const prices = [
 const pricesReverse = [
   { from: 'Даштималла', to: 'Терешкова', price: '2 ' },
   { from: 'Даштималла', to: 'Марказ', price: '3 ' },
-  { from: 'Даштималла', to: '69-мактаб', price: '4 ' },
+  { from: 'Даштималла', to: '69-мактаб', price: '5 ' },
   { from: 'Даштималла', to: 'Бобур', price: '5 ' },
   { from: 'Даштималла', to: 'Мармар', price: '6 ' },
 ];
