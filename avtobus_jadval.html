@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Avtobus"/>
+<title>🚌 Автобус Жадвали</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#0f172a;-webkit-tap-highlight-color:transparent}
+  body{overscroll-behavior:none}
+  .app{font-family:'Nunito',sans-serif;max-width:480px;margin:0 auto;min-height:100vh;background:#f1f5f9}
+  .header{background:linear-gradient(145deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%);color:#fff;padding:20px 20px 16px;position:relative;overflow:hidden}
+  .header::before{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:rgba(255,255,255,.06);border-radius:50%}
+  .tab-bar{display:flex;background:#fff;border-bottom:2px solid #e2e8f0;position:sticky;top:0;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .tab-btn{flex:1;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Nunito',sans-serif;font-weight:600;transition:all .2s}
+  .stop-btn{display:flex;align-items:center;gap:14px;border:2px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer;text-align:left;width:100%;transition:all .15s;font-family:'Nunito',sans-serif}
+  .time-chip{border-radius:10px;font-weight:700;border:2px solid transparent;white-space:nowrap;font-family:'Nunito',sans-serif;display:inline-block}
+  .route-btn{flex:1;border-radius:14px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;transition:all .2s;line-height:1.35}
+  .badge{border-radius:20px;font-weight:800;color:#fff;font-family:'Nunito',sans-serif}
+  .font-btn{border:none;border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .card{background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.5)}50%{box-shadow:0 0 0 8px rgba(251,191,36,0)}}
+  .pulse{animation:pulse 2s infinite}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const STOPS_M2D = ["Мармар","Малихонов","Бобур Шералиев","69-мактаб","Шодиев Зикриё","Сужина-Марказ","Беликсой","Даштималла"];
+const OFF_M2D   = [0,3,5,7,9,12,20,30];
+const STOPS_D2M = ["Даштималла","Беликсой","Сужина-Марказ","Шодиев Зикриё","69-мактаб","Бобур Шералиев","Малихонов","Мармар"];
+const OFF_D2M   = [0,5,10,15,17,20,25,30];
+
+const addMin = (t,m) => {
+  const [h,min] = t.split(":").map(Number);
+  const tot = h*60+min+m;
+  return `${String(Math.floor(tot/60)).padStart(2,"0")}:${String(tot%60).padStart(2,"0")}`;
+};
+
+const M_DEPS = ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30"];
+const D_DEPS = ["06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00"];
+
+const PRICES = [
+  {from:"Мармар",    to:"Малихонов", price:2},
+  {from:"Мармар",    to:"Дашт",      price:4},
+  {from:"Мармар",    to:"Сужина",    price:5},
+  {from:"Мармар",    to:"Терешкова", price:6},
+  {from:"Мармар",    to:"Даштималла",price:7},
+  {from:"Бобур",     to:"Сужина",    price:3},
+  {from:"Бобур",     to:"Терешкова", price:5},
+  {from:"Дашт",      to:"Даштималла",price:6},
+  {from:"Сужина",    to:"Дашт",      price:3},
+  {from:"Сужина",    to:"Мармар",    price:5},
+  {from:"Терешкова", to:"Сужина",    price:2},
+  {from:"Терешкова", to:"Мармар",    price:6},
+  {from:"Даштималла",to:"Сужина",    price:3},
+  {from:"Даштималла",to:"Мармар",    price:7},
+];
+
+const PC = ["#22c55e","#22c55e","#3b82f6","#3b82f6","#8b5cf6","#8b5cf6","#ef4444"];
+
+function App() {
+  const [tab,          setTab]          = useState("schedule");
+  const [route,        setRoute]        = useState("m2d");
+  const [selectedStop, setSelectedStop] = useState(0);
+  const [fontScale,    setFontScale]    = useState(1);
+  const [now,          setNow]          = useState(new Date());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 20000);
+    return () => clearInterval(t);
+  }, []);
+
+  const base  = Math.round(16 * fontScale);
+  const isM2D = route === "m2d";
+  const stops   = isM2D ? STOPS_M2D : STOPS_D2M;
+  const offsets = isM2D ? OFF_M2D   : OFF_D2M;
+  const deps    = isM2D ? M_DEPS    : D_DEPS;
+  const RC   = isM2D ? "#1d4ed8" : "#15803d";
+  const RCLG = isM2D ? "#dbeafe" : "#dcfce7";
+  const RCTX = isM2D ? "#1e40af" : "#166534";
+  const RCBG = isM2D ? "linear-gradient(135deg,#1e3a8a,#2563eb)" : "linear-gradient(135deg,#14532d,#16a34a)";
+
+  const stopTimes = deps.map(d => addMin(d, offsets[selectedStop]));
+  const nowMins   = now.getHours()*60 + now.getMinutes();
+  const nextBus   = stopTimes.find(t => { const [h,m]=t.split(":").map(Number); return h*60+m > nowMins; });
+  const clock     = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  const fromGroups = [...new Set(PRICES.map(p => p.from))];
+
+  return (
+    <div className="app" style={{fontSize:base}}>
+
+      {/* HEADER */}
+      <div className="header">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative",zIndex:1}}>
+          <div>
+            <div style={{fontSize:base*1.5,fontWeight:900,letterSpacing:-0.5}}>🚌 Автобус</div>
+            <div style={{fontSize:base*1.05,fontWeight:700,opacity:0.9}}>Жадвали</div>
+            <div style={{fontSize:base*0.8,opacity:0.75,marginTop:2}}>Мармар ↔ Даштималла</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:base*1.35,fontWeight:900,letterSpacing:1,background:"rgba(255,255,255,.15)",borderRadius:12,padding:"6px 14px",marginBottom:8}}>
+              🕐 {clock}
+            </div>
+            <div style={{fontSize:base*0.72,opacity:0.8,marginBottom:4,textAlign:"center"}}>Шрифт</div>
+            <div style={{display:"flex",gap:5,justifyContent:"flex-end"}}>
+              {[[1,12],[1.25,15],[1.5,18]].map(([s,fs],i) => (
+                <button key={s} className="font-btn"
+                  onClick={() => setFontScale(s)}
+                  style={{
+                    width:28+i*6, height:28+i*6, fontSize:fs,
+                    background: fontScale===s ? "#fff" : "rgba(255,255,255,.2)",
+                    color:      fontScale===s ? "#1e40af" : "#fff",
+                  }}>A</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div className="tab-bar">
+        {[{id:"schedule",icon:"🕐",label:"Жадвал"},{id:"prices",icon:"💰",label:"Нарх"}].map(t => (
+          <button key={t.id} className="tab-btn"
+            onClick={() => setTab(t.id)}
+            style={{
+              padding:`${base*0.75}px 0`, fontSize:base,
+              color:      tab===t.id ? "#1d4ed8" : "#64748b",
+              fontWeight: tab===t.id ? 800 : 600,
+              borderBottom:`3px solid ${tab===t.id ? "#1d4ed8" : "transparent"}`,
+            }}>
+            <span>{t.icon}</span><span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div style={{padding:16,paddingBottom:40}}>
+
+        {/* ── SCHEDULE ── */}
+        {tab==="schedule" && <>
+          {/* Route toggle */}
+          <div style={{display:"flex",gap:10,marginBottom:16}}>
+            {[
+              {id:"m2d",label:"Мармар →\nДаштималла",grad:"linear-gradient(135deg,#1e3a8a,#3b82f6)",border:"#1d4ed8"},
+              {id:"d2m",label:"Даштималла →\nМармар",    grad:"linear-gradient(135deg,#14532d,#22c55e)",border:"#15803d"},
+            ].map(r => (
+              <button key={r.id} className="route-btn"
+                onClick={() => { setRoute(r.id); setSelectedStop(0); }}
+                style={{
+                  padding:`${base*0.75}px ${base*0.6}px`, fontSize:base*0.88,
+                  background: route===r.id ? r.grad : "#fff",
+                  color:      route===r.id ? "#fff" : "#374151",
+                  border:`2px solid ${r.border}`,
+                  whiteSpace:"pre-line",
+                  boxShadow: route===r.id ? `0 4px 14px ${r.border}44` : "none",
+                }}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Info */}
+          <div style={{display:"flex",gap:10,marginBottom:16}}>
+            <div className="card" style={{flex:1,padding:"12px 14px",border:"none"}}>
+              <div style={{fontSize:base*0.78,color:"#64748b",fontWeight:600}}>⏱ Иш вақти</div>
+              <div style={{fontSize:base*1.05,fontWeight:800,color:"#0f172a",marginTop:3}}>
+                {isM2D ? "06:00 – 18:30" : "06:30 – 19:00"}
+              </div>
+            </div>
+            <div className="card" style={{flex:1,padding:"12px 14px",border:"none",background:"#fef9c3"}}>
+              <div style={{fontSize:base*0.78,color:"#713f12",fontWeight:600}}>🍽️ Обед</div>
+              <div style={{fontSize:base*1.05,fontWeight:800,color:"#78350f",marginTop:3}}>
+                {isM2D ? "12:30–14:00" : "13:00–14:30"}
+              </div>
+            </div>
+          </div>
+
+          {/* Stops */}
+          <div style={{fontSize:base*0.85,color:"#64748b",fontWeight:700,marginBottom:10,paddingLeft:2}}>
+            📍 Бекатингизни танланг:
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {stops.map((stop,i) => {
+              const sel = selectedStop===i;
+              return (
+                <button key={i} className="stop-btn"
+                  onClick={() => setSelectedStop(i)}
+                  style={{
+                    padding:`${base*0.7}px ${base}px`,
+                    background:  sel ? RCLG : "#fff",
+                    borderColor: sel ? RC   : "#e2e8f0",
+                    boxShadow:   sel ? `0 2px 10px ${RC}30` : "none",
+                  }}>
+                  <span style={{background:sel?RC:"#e2e8f0",color:sel?"#fff":"#64748b",borderRadius:"50%",minWidth:base*2,height:base*2,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:base*0.82}}>
+                    {i+1}
+                  </span>
+                  <span style={{fontWeight:sel?800:600,color:sel?"#0f172a":"#374151",fontSize:base,flex:1}}>
+                    {stop}
+                  </span>
+                  {sel && nextBus && (
+                    <span className="pulse" style={{background:"#fbbf24",color:"#1e293b",borderRadius:10,padding:`${base*0.3}px ${base*0.65}px`,fontSize:base*0.8,fontWeight:800,flexShrink:0}}>
+                      ⏱ {nextBus}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Times */}
+          <div className="card">
+            <div style={{padding:"14px 16px",background:RCBG,color:"#fff"}}>
+              <div style={{fontWeight:800,fontSize:base*1.05}}>🕐 {stops[selectedStop]}</div>
+              {nextBus
+                ? <div style={{marginTop:6,fontSize:base*0.88,background:"rgba(255,255,255,.18)",borderRadius:10,padding:"6px 12px",display:"inline-flex",alignItems:"center",gap:6}}>
+                    Кейинги: <strong>{nextBus}</strong>
+                  </div>
+                : <div style={{marginTop:6,fontSize:base*0.82,opacity:0.8}}>Бугун рейслар тугади</div>
+              }
+            </div>
+            <div style={{padding:14,display:"flex",flexWrap:"wrap",gap:8}}>
+              {stopTimes.map((t,i) => {
+                const [h,m] = t.split(":").map(Number);
+                const tMins = h*60+m;
+                const past   = tMins < nowMins;
+                const isNext = t === nextBus;
+                return (
+                  <span key={i} className={`time-chip${isNext?" pulse":""}`}
+                    style={{
+                      padding:`${base*0.42}px ${base*0.78}px`,
+                      fontSize:base*(isNext?1.08:1),
+                      background: isNext?"#fbbf24" : past?"#f1f5f9" : RCLG,
+                      color:      isNext?"#1e293b"  : past?"#94a3b8"  : RCTX,
+                      borderColor: isNext?"#f59e0b":"transparent",
+                    }}>
+                    {t}
+                  </span>
+                );
+              })}
+            </div>
+            <div style={{padding:"0 14px 12px",display:"flex",flexWrap:"wrap",gap:12,fontSize:base*0.78,color:"#64748b"}}>
+              <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{background:"#fbbf24",borderRadius:6,padding:"1px 8px",color:"#1e293b",fontWeight:700}}>⏱</span> Кейинги</span>
+              <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{background:RCLG,borderRadius:6,padding:"1px 8px",color:RCTX,fontWeight:600}}>●</span> Кутилмоқда</span>
+              <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{background:"#f1f5f9",borderRadius:6,padding:"1px 8px",color:"#94a3b8",fontWeight:600}}>●</span> Ўтган</span>
+            </div>
+          </div>
+        </>}
+
+        {/* ── PRICES ── */}
+        {tab==="prices" && <>
+          <div style={{fontSize:base*0.88,color:"#64748b",fontWeight:700,marginBottom:14,paddingLeft:2}}>
+            💰 Йўл нархлари (сомонӣ)
+          </div>
+          {fromGroups.map((from,gi) => (
+            <div key={from} className="card" style={{marginBottom:14}}>
+              <div style={{padding:"12px 16px",background:gi%2===0?"linear-gradient(135deg,#1e3a8a,#2563eb)":"linear-gradient(135deg,#14532d,#16a34a)",color:"#fff",fontWeight:800,fontSize:base*0.95,display:"flex",alignItems:"center",gap:8}}>
+                <span style={{background:"rgba(255,255,255,.2)",borderRadius:8,padding:"3px 10px"}}>📍 {from}</span>
+                <span style={{fontWeight:500,opacity:0.9}}>дан</span>
+              </div>
+              {PRICES.filter(p=>p.from===from).map((p,i,arr) => (
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:`${base*0.75}px ${base}px`,borderBottom:i<arr.length-1?"1px solid #f1f5f9":"none"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{color:"#94a3b8",fontSize:base*1.2}}>→</span>
+                    <span style={{fontWeight:600,fontSize:base}}>{p.to}</span>
+                  </div>
+                  <span className="badge" style={{padding:`${base*0.32}px ${base*0.9}px`,fontSize:base*0.95,background:PC[Math.min(p.price-1,PC.length-1)]}}>
+                    {p.price} сом
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+          <div style={{textAlign:"center",color:"#94a3b8",fontSize:base*0.9,marginTop:4,fontWeight:600}}>
+            🚌 Яхши сафар тилаймиз!
+          </div>
+        </>}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
